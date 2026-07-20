@@ -2,15 +2,15 @@ services:
   db: 
     image: postgres:16-alpine 
     environment:
-      POSTGRES_USER: ${db_user}
-      POSTGRES_PASSWORD: ${db_password}
-      POSTGRES_DB: ${db_name}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "${db_port}:5432"
+      - "${DB_PORT}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${db_user} -d ${db_name}"] 
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"] 
       interval: 5s
       timeout: 3s 
       retries: 10 
@@ -24,7 +24,7 @@ services:
       - gocache:/root/.cache/go-build
     environment:
       PORT: "8080"
-      DATABASE_URL: "postgres://${db_user}:${db_password}@${db_host}:${db_port}/${db_name}?sslmode=disable"
+      DATABASE_URL: "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
       GOTOOLCHAIN: "auto"
     command: sh -c "go mod download && go run ./cmd/api" 
     ports:
