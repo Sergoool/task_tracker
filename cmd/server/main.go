@@ -3,38 +3,78 @@ package main
 import (
 	"log"
 	"net/http"
-	"task_tracker/internal/model"
+	"task_tracker/internal/api/rest/handlers"
+	"task_tracker/internal/config"
+	"task_tracker/internal/connection/initialize"
+	"task_tracker/internal/domain/repository"
+	"task_tracker/internal/domain/service"
+	"task_tracker/internal/domain/types"
 
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
-
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-
-	"os"
+	//"gorm.io/driver/postgres"
+	//"gorm.io/gorm"
+	//"os"
 )
 
 
 func main() {
+	_ = godotenv.Load()
+
+	cfg, err := config.Load() 
+	if err != nil {         
+		log.Fatalf("config error: %v", err) 
+	}
+
+	gormDB, err := initialize.New(cfg.DatabaseURL)
+
+	if err != nil {
+		log.Fatalf("database error: %v", err)
+	}
+	log.Println("database connected")
+
+	sqlDB, err := gormDB.DB()
+	if err != nil {
+		log.Fatalf("db sql error: %v", err)
+	}
+	if err := sqlDB.Ping(); err != nil {
+		log.Fatalf("db ping error: %v", err)
+	}
+	log.Println("db ping ok") 
+
+	if err := gormDB.AutoMigrate(&types.Task{}); err != nil {
+		log.Fatalf("db migrate error: %v", err)
+	}
+	log.Println("db migrated")
+
     e := echo.New()
 
-	dsn := os.Getenv("DATABASE_URL")
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
+	taskRepo := repository.NewTaskGormRepository(gormDB)
+	taskService := service.NewTaskService(taskRepo)
+	versionHandler := handlers.NewVersionHandler(taskService)
 
-	db.AutoMigrate(&model.Task{})
-
-	e.GET("/health", func(c echo.Context) error {
-		sqlDB, err := db.DB()
-		if err != nil || sqlDB.Ping() != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{
-			"status": "error",
+	api := e.Group("/api")
+	{
+		api.GET("/health", func(c echo.Context) error {
+			return c.JSON(http.StatusOK, echo.Map {
+				"status": "ok",
+			})
 		})
+		api.GET("/ping", func(c echo.Context) error {
+			return c.JSON(http.StatusOK, echo.Map {
+				"message": "pong",
+			})
+		})
+
+		api.GET("/version", versionHandler.GetVersion)
 	}
-		return c.JSON(http.StatusOK, echo.Map{
-			"status": "everything is OK",
-	})
-	})
-	e.Logger.Fatal(e.Start(":8080"))
+
+	_ = gormDB
+
+	addr := ":" + cfg.Port      
+	log.Printf("starting server on %s", addr) 
+
+	if err := e.Start(addr); err != nil { 
+		log.Fatalf("server error: %v", err)
+	}
 }

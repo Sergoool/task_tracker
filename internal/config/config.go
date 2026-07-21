@@ -1,9 +1,10 @@
-package config 
+package config
 
 import (
-	"fmt"   
-	"os"  
-	"strings" 
+	"fmt"
+	"os"
+	"strings"
+)
 
 type Config struct { 
 	Port        string 
