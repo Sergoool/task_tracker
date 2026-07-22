@@ -49,19 +49,44 @@ func (h *TaskHandler) Create(c echo.Context) error {
 }
 
 func (h *TaskHandler) List(c echo.Context) error {
-	tasks, err := h.taskService.List(c.Request().Context())
+	var statusPtr *string
+	if statusStr := c.QueryParam("status"); statusStr != "" {
+		statusPtr = &statusStr
+	}
+	limit := 20
+	offset := 0
+
+	if s := c.QueryParam("limit"); s != "" {
+		v, err := strconv.Atoi(s)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid limit"})
+		}
+		limit = v
+	}
+	if s := c.QueryParam("offset"); s != "" {
+		v, err := strconv.Atoi(s)
+		if err != nil || v < 0 {
+			return c.JSON(http.StatusBadRequest, echo.Map{"error":"invalid offset"})
+		}
+		offset = v
+	}
+	tasks, err := h.taskService.List(c.Request().Context(), statusPtr, limit, offset)
 	if err != nil {
+		if errors.Is(err, types.ErrValidation) {
+			return c.JSON(http.StatusBadRequest, echo.Map{"error": "validation error"})
+		}
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "internal error"})
 	}
+
 
 	resp := make([]dto.TaskResponse, 0, len(tasks))
 	for _, t := range tasks {
 		resp = append(resp, dto.TaskResponse{
-			ID:        t.ID,
-			Title:     t.Title,
+			ID:          t.ID,
+			Title:       t.Title,
 			Description: t.Description,
 			Status:      t.Status,
-			CreatedAt: t.CreatedAt,
+			CreatedAt:   t.CreatedAt,
 		})
 	}
 
@@ -91,5 +116,72 @@ func (h *TaskHandler) GetByID(c echo.Context) error { // GET /tasks/id
 		CreatedAt: task.CreatedAt,
 	})
 }
+
+func (h *TaskHandler) Update(c echo.Context) error {
+	idStr := c.Param("id")
+	id64, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil || id64 == 0 {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid id"})
+	}
+	
+	var req dto.UpdateTaskRequest
+	
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid json"})
+	}
+
+	if req.Status != nil {
+		s := *req.Status
+		if s != types.New && s != types.InProgress && s != types.Done && s != types.Cancelled {
+			return c.JSON(http.StatusConflict, echo.Map{"error":"invalid status"})
+		}
+	}
+
+	task, err := h.taskService.Update(c.Request().Context(), uint(id64), req.Title, req.Description, req.Status)
+	if err != nil {
+		if errors.Is(err, types.ErrValidation) {
+			return c.JSON(http.StatusBadRequest, echo.Map{"error": "validation error"}) // 400
+		}
+		if errors.Is(err, types.ErrNotFound) {
+			return c.JSON(http.StatusNotFound, echo.Map{"error": "task not found"})
+		}
+		/*const (
+	New 		string = "new"
+	InProgress	string = "in_progress"
+	Done 		string = "done"
+	Cancelled	string = "cancelled"
+)*/
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "internal error"}) // 500
+	}
+
+	return c.JSON(http.StatusOK, dto.TaskResponse{ // 200 + DTO
+		ID:        task.ID,
+		Title:     task.Title,
+		Description: task.Description,
+		Status:      task.Status,
+		UpdatedAt: task.UpdatedAt,
+	})
+}
+
+func (h *TaskHandler) Delete(c echo.Context) error { // DELETE /tasks/:id
+	idStr := c.Param("id")
+	id64, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil || id64 == 0 {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid id"}) // 400
+	}
+
+	if err := h.taskService.Delete(c.Request().Context(), uint(id64)); err != nil {
+		if errors.Is(err, types.ErrValidation) {
+			return c.JSON(http.StatusBadRequest, echo.Map{"error": "validation error"}) // 400
+		}
+		if errors.Is(err, types.ErrNotFound) {
+			return c.JSON(http.StatusNotFound, echo.Map{"error": "task not found"}) // 404
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "internal error"}) // 500
+	}
+
+	return c.NoContent(http.StatusNoContent) // 204 без тела
+}
+
 
 
