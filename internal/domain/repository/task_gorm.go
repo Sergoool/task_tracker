@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+
+	//"task_tracker/internal/domain/service"
 	"task_tracker/internal/domain/types"
 
 	"gorm.io/gorm"
@@ -41,7 +43,7 @@ func (r *TaskGormRepository) GetByID(ctx context.Context, id uint) (*types.Task,
 	err := r.db.WithContext(ctx).First(&task, id).Error // SELECT ... WHERE id=?
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, types.ErrNotFound
 		}
 		return nil, err
 	}
