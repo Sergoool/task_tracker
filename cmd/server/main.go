@@ -51,6 +51,8 @@ func main() {
 
 	taskRepo := repository.NewTaskGormRepository(gormDB)
 	taskService := service.NewTaskService(taskRepo)
+
+	taskHandler := handlers.NewTaskHandler(taskService)
 	versionHandler := handlers.NewVersionHandler(taskService)
 
 	api := e.Group("/api")
@@ -65,8 +67,10 @@ func main() {
 				"message": "pong",
 			})
 		})
-
 		api.GET("/version", versionHandler.GetVersion)
+		api.POST("/tasks", taskHandler.Create)
+		api.GET("/tasks", taskHandler.List)
+		api.GET("/tasks/:id", taskHandler.GetByID)
 	}
 
 	_ = gormDB
