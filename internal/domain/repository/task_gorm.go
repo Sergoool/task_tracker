@@ -29,7 +29,7 @@ func (r *TaskGormRepository) Ping(ctx context.Context) error {
 func (r *TaskGormRepository) Create(ctx context.Context, task *types.Task) error {
 	return r.db.WithContext(ctx).Create(task).Error
 }
-
+/*
 func (r *TaskGormRepository) List(ctx context.Context) ([]types.Task, error) { 
 	var tasks []types.Task
 	err := r.db.WithContext(ctx).
@@ -37,7 +37,7 @@ func (r *TaskGormRepository) List(ctx context.Context) ([]types.Task, error) {
 		Find(&tasks).Error
 	return tasks, err
 }
-
+*/
 func (r *TaskGormRepository) GetByID(ctx context.Context, id uint) (*types.Task, error) { // получить по id
 	var task types.Task
 	err := r.db.WithContext(ctx).First(&task, id).Error // SELECT ... WHERE id=?
@@ -69,7 +69,7 @@ func (r *TaskGormRepository) List(ctx context.Context, status *string, limit, of
 	return tasks, err
 }
 
-func (r *TaskGormRepository) Update(ctx context.Context, id uint, title *string, status *string) (*types.Task, error) {
+func (r *TaskGormRepository) Update(ctx context.Context, id uint, title *string, description *string, status *string) (*types.Task, error) {
 	task, err := r.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -80,6 +80,9 @@ func (r *TaskGormRepository) Update(ctx context.Context, id uint, title *string,
 	}
 	if status != nil {
 		task.Status = *status
+	}
+	if description != nil {
+		task.Description = *description
 	}
 
 	if err := r.db.WithContext(ctx).Save(task).Error; err != nil {

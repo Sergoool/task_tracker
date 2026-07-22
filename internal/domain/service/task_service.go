@@ -69,7 +69,7 @@ func (s *TaskService) GetByID(ctx context.Context, id uint) (*types.Task, error)
 	return task, nil
 }
 
-func (s *TaskService) Update(ctx context.Context, id uint, title *string, status *string) (*types.Task, error) {
+func (s *TaskService) Update(ctx context.Context, id uint, title *string, description *string, status *string) (*types.Task, error) {
 	if id == 0 {
 		return nil, types.ErrValidation
 	}
@@ -85,7 +85,15 @@ func (s *TaskService) Update(ctx context.Context, id uint, title *string, status
 		title = &t
 	}
 
-	task, err := s.repo.Update(ctx, id, title, status)
+	if description != nil {
+		d := strings.TrimSpace(*description)
+		if d == "" {
+			return nil, types.ErrValidation
+		}
+		description = &d
+	}
+
+	task, err := s.repo.Update(ctx, id, title, description, status)
 	if err != nil {
 		if errors.Is(err, types.ErrNotFound) {
 			return nil, types.ErrNotFound

@@ -14,7 +14,7 @@ type TaskRepository interface {
 
 	GetByID(ctx context.Context, id uint) (*types.Task, error)
 	
-	Update(ctx context.Context, id uint, title *string, status *string) (*types.Task, error)
+	Update(ctx context.Context, id uint, title *string, description *string, status *string) (*types.Task, error)
 
 	Delete(ctx context.Context, id uint) error
 }
