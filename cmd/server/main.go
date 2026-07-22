@@ -73,6 +73,7 @@ func main() {
 		api.GET("/tasks/:id", taskHandler.GetByID)
 		api.PATCH("/tasks/:id", taskHandler.Update)
 		api.DELETE("/tasks/:id", taskHandler.Delete)
+		api.PUT("/tasks/:id", taskHandler.Update)
 	}
 
 	_ = gormDB
