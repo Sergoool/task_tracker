@@ -88,8 +88,13 @@ func (r *TaskGormRepository) Update(ctx context.Context, id uint, title *string,
 	if err := r.db.WithContext(ctx).Save(task).Error; err != nil {
 		return nil, err
 	}
+
+	if err := r.db.WithContext(ctx).First(task, id).Error; err != nil {
+		return nil, err
+	} //вот из-за этого маленького участка кода все даты моего проекта были белибердой, запомнить, без него никак, обязателен!!!
 	return task, nil
 }
+
 
 func (r *TaskGormRepository) Delete(ctx context.Context, id uint) error {
 	res := r.db.WithContext(ctx).Delete(&types.Task{}, id) //delete where
