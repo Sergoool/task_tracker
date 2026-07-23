@@ -6,12 +6,14 @@ import (
 	"task_tracker/internal/api/rest/handlers"
 	"task_tracker/internal/config"
 	"task_tracker/internal/connection/initialize"
+	mid "task_tracker/internal/domain/middleware"
 	"task_tracker/internal/domain/repository"
 	"task_tracker/internal/domain/service"
 	"task_tracker/internal/domain/types"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
+	echomid "github.com/labstack/echo/v4/middleware"
 	//"gorm.io/driver/postgres"
 	//"gorm.io/gorm"
 	//"os"
@@ -48,6 +50,9 @@ func main() {
 	log.Println("db migrated")
 
     e := echo.New()
+	e.Use(echomid.RequestLogger())
+	e.Use(mid.RecoveryJSON())
+	e.Use(mid.ErrorLogger())
 
 	taskRepo := repository.NewTaskGormRepository(gormDB)
 	taskService := service.NewTaskService(taskRepo)

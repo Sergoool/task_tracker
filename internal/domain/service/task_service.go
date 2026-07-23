@@ -30,7 +30,10 @@ func (s *TaskService) Create(ctx context.Context, title string,
 description string) (*types.Task, error) {
 	title = strings.TrimSpace(title)
 	if title == "" {
-		return nil, types.ErrValidation
+		return nil, Validation(map[string]string{
+		"user_id": "must be > 0",
+		"title":   "required",
+	})
 	}
 
 	task := &types.Task{
@@ -40,55 +43,66 @@ description string) (*types.Task, error) {
 	}
 
 	if err := s.repo.Create(ctx, task); err != nil {
-		return nil, err
+		return nil, Internal(err)
 	}
 	return task, nil
 }
 func (s *TaskService) List(ctx context.Context, status *string, limit, offset int) ([]types.Task, error) {
-	if limit < 0 {
+	/*if limit < 0 {
 		limit = 20
-	}
-	if limit > 100 {
-		return nil, types.ErrValidation
-	}
-	if offset < 0 {
-		return nil, types.ErrValidation
-	}
+	}*/
+	if limit > 100 || offset < 0 || limit < 0 {
+	return nil, Validation(map[string]string{
+		"limit":  "must be 1..100",
+		"offset": "must be >= 0",
+	})
+}
+
 	
-	return s.repo.List(ctx, status, limit, offset)
+	tasks, err := s.repo.List(ctx, status, limit, offset)
+	if err != nil {
+		return nil, Internal(err)
+	}
+	return tasks, nil
 }
 
 func (s *TaskService) GetByID(ctx context.Context, id uint) (*types.Task, error) {
 	task, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, types.ErrNotFound) {
-			return nil, types.ErrNotFound
+			return nil, NotFound(nil)
 		}
-		return nil, err
+		return nil, Internal(err)
 	}
 	return task, nil
 }
 
 func (s *TaskService) Update(ctx context.Context, id uint, title *string, description *string, status *string) (*types.Task, error) {
 	if id == 0 {
-		return nil, types.ErrValidation
+		return nil, Validation(map[string]string{
+		"id":  "must be 1..N",
+	})
 	}
 	if title == nil && status == nil {
-		return nil, types.ErrValidation
-	}
+		return nil, Validation(map[string]string{
+		"title":  "should be text",
+		"status": "should be text",
+	})}
 
 	if title != nil {
 		t := strings.TrimSpace(*title)
 		if t == "" {
-			return nil, types.ErrValidation
-		}
+			return nil,  Validation(map[string]string{
+			"title":  "should be text",
+		})}
 		title = &t
 	}
 
 	if description != nil {
 		d := strings.TrimSpace(*description)
 		if d == "" {
-			return nil, types.ErrValidation
+			return nil, Validation(map[string]string{
+			"description":  "should be text",})
 		}
 		description = &d
 	}
@@ -96,23 +110,25 @@ func (s *TaskService) Update(ctx context.Context, id uint, title *string, descri
 	task, err := s.repo.Update(ctx, id, title, description, status)
 	if err != nil {
 		if errors.Is(err, types.ErrNotFound) {
-			return nil, types.ErrNotFound
+			return nil, NotFound(nil)
 		}
-		return nil, err
+		return nil, Internal(err)
 	}
 	return task, nil
 }
 
 func (s *TaskService) Delete(ctx context.Context, id uint) error {
 	if id == 0 {
-		return types.ErrValidation
+		return Validation(map[string]string{
+			"id":"should be > 0",
+		})
 	}
 	err := s.repo.Delete(ctx, id)
 	if err != nil {
 		if errors.Is(err, types.ErrNotFound) {
-			return types.ErrNotFound
+			return NotFound(err)
 		}
-		return err
+		return Internal(err)
 	}
 	return nil
 }
