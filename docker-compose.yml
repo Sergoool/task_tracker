@@ -16,17 +16,11 @@ services: # сервисы compose
       retries: 10 # попытки
 
   app: # Go приложение
-    image: golang:1.25-alpine # рантайм/сборка
-    working_dir: /app # рабочая папка
-    volumes:
-      - ./:/app # код внутрь
-      - gomod:/go/pkg/mod # кеш модулей
-      - gocache:/root/.cache/go-build # кеш сборки
+    build: .
     environment:
       PORT: "8080" # порт сервера
       DATABASE_URL: "postgres://postgres:postgres@db:5432/task_tracker?sslmode=disable" # DSN
-      GOTOOLCHAIN: "auto" # авто toolchain
-    command: sh -c "go mod download && go run ./cmd/server" # скачать модули + старт
+      TZ: "Europe/Moscow"
     ports:
       - "8080:8080" # проброс порта
     depends_on:
@@ -35,5 +29,4 @@ services: # сервисы compose
 
 volumes: # именованные тома
   pgdata: # данные Postgres
-  gomod: # кеш модулей
-  gocache: # кеш сборки
+
