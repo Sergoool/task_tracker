@@ -6,7 +6,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o task_tracker ./cmd/app/main.gi
+RUN go build -o task_tracker ./cmd/server/main.go
 
 CMD [ "./task_tracker" ]
 
