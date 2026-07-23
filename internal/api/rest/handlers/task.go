@@ -146,7 +146,7 @@ func (h *TaskHandler) Update(c echo.Context) error {
 		s := *req.Status
 		if s != types.New && s != types.InProgress && s != types.Done && s != types.Cancelled {
 			return response.JSONError(c, http.StatusConflict, "validation_error", map[string]string{
-				"status":"invalid status",
+				"status":"invalid status, should be 'in_progress', 'new', 'done' or 'cancelled'",
 			})
 		}
 	}
